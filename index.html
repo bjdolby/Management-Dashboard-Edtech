@@ -574,6 +574,8 @@
     </div>
 
     <div class="section-label">Revenue &amp; profitability trends</div>
+    <!-- Page 1 — Profitability: top line, margin, bottom line. Tells the
+         complete P&L story across all loaded months. -->
     <div class="chart-grid">
       <div class="chart-card">
         <div class="chart-card-title">Monthly revenue vs total costs</div>
@@ -582,31 +584,26 @@
           <div class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>Revenue</div>
           <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Total costs</div>
         </div>
-        <div class="chart-wrap" style="height:230px;"><canvas id="revChart"></canvas></div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="revChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Gross profit margin %</div>
         <div class="chart-card-sub">% of revenue retained after direct costs</div>
-        <div class="chart-wrap" style="height:258px;"><canvas id="marginChart"></canvas></div>
-      </div>
-    </div>
-    <div class="chart-grid">
-      <div class="chart-card">
-        <div class="chart-card-title">Cash balance</div>
-        <div class="chart-card-sub">Closing bank balance over all loaded periods</div>
-        <div class="chart-wrap" style="height:230px;"><canvas id="cashChart"></canvas></div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="marginChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Net profit / (loss)</div>
         <div class="chart-card-sub">Monthly net result — green = profit, red = loss</div>
-        <div class="chart-wrap" style="height:230px;"><canvas id="netChart"></canvas></div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="netChart"></canvas></div>
       </div>
     </div>
+    <!-- Page 2 — Cash & mix: cash balance trend, monthly flow direction,
+         and the revenue-mix snapshot for the focus period. -->
     <div class="chart-grid">
       <div class="chart-card">
-        <div class="chart-card-title">Revenue mix (selected period)</div>
-        <div class="chart-card-sub">Split of trading income by source</div>
-        <div class="chart-wrap" style="height:260px;"><canvas id="revMixChart"></canvas></div>
+        <div class="chart-card-title">Cash balance</div>
+        <div class="chart-card-sub">Closing bank balance over all loaded periods</div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="cashChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Cash in vs cash out</div>
@@ -615,7 +612,12 @@
           <div class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>Cash in</div>
           <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Cash out</div>
         </div>
-        <div class="chart-wrap" style="height:230px;"><canvas id="cashFlowChart"></canvas></div>
+        <div class="chart-wrap" style="height:200px;"><canvas id="cashFlowChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Revenue mix (selected period)</div>
+        <div class="chart-card-sub">Split of trading income by source</div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="revMixChart"></canvas></div>
       </div>
     </div>
 
