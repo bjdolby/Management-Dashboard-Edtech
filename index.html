@@ -1652,8 +1652,10 @@ async function processFiles(files, isAddition = false) {
     return;
   }
 
-  // Set focus to most recent month if not already set
-  if (!state.focus || !state.months.includes(state.focus)) state.focus = state.months[0];
+  // Always jump focus to the most recent month after any upload — saves
+  // having to manually flip the dropdown when you've added newer data on
+  // top of older months. state.months is newest-first so [0] is the latest.
+  state.focus = state.months[0];
 
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('dashboard').style.display      = 'block';
@@ -3569,7 +3571,24 @@ function renderCharts() {
   const axis = { grid: { color: gridCol }, ticks: { color: tickCol, font: { size: 11, family: "'DM Mono', monospace" } } };
   const tip  = { backgroundColor: tipBg, titleColor: tipTitle, bodyColor: tipBody, borderColor: tipBord, borderWidth: 0.5, padding: 10 };
   const base = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip } };
-  const xTicks = { ...axis.ticks, autoSkip: all.length > 14, maxRotation: 45 };
+  // Custom tick callback — Chart.js's autoSkip picks an interval that can
+  // drop the most recent month (the one you most want to see). We disable
+  // autoSkip and choose ticks ourselves: first, last, and every Nth in
+  // between. This guarantees the latest month always has a label.
+  const xTicks = {
+    ...axis.ticks,
+    autoSkip: false,
+    maxRotation: 45,
+    callback: function(val, idx, allTicks) {
+      const total = allTicks.length;
+      if (total <= 14) return this.getLabelForValue(val); // show all when not crowded
+      const step = Math.max(1, Math.ceil(total / 10));
+      if (idx === 0 || idx === total - 1 || idx % step === 0) {
+        return this.getLabelForValue(val);
+      }
+      return '';
+    }
+  };
 
   ['rev','margin','cash','net','revMix','cashFlow'].forEach(k => { if (chartInstances[k]) chartInstances[k].destroy(); });
 
@@ -4283,12 +4302,20 @@ function renderPLTable() {
   }
 
   const focus = state.focus;
-  // Months in current FY, oldest → newest, capped to 12 to keep print readable
-  const fyMonths = monthsInFYTo(focus).slice().reverse().slice(-12);
+  // Months in current FY, NEWEST → oldest, capped to 12 to keep print readable.
+  // We display newest-first to match the P&L Summary table above. Sparklines
+  // still read oldest→newest visually — see `sparkFor` helper below.
+  const fyMonths = monthsInFYTo(focus).slice(0, 12);
 
-  // Columns: each FY month + a YTD total column
+  // Columns: each FY month (newest-first) + a YTD total column at the end
   const cols = fyMonths.map(m => ({ label: m, key: m, ytd: false }))
     .concat([{ label: 'FY-to-date', key: '__ytd__', ytd: true }]);
+
+  // Sparklines always read left = oldest, right = newest, regardless of how
+  // the table columns are ordered — so a rising line means "growing over time"
+  // no matter which direction the table runs. We strip the YTD column then
+  // reverse the per-month slice to chronological order.
+  const sparkFor = (vals) => plSparkline(vals.slice(0, fyMonths.length).reverse());
 
   function cVal(acct, col) {
     if (col.ytd) return fyMonths.reduce((s, m) => s + plVal(m, acct), 0);
@@ -4336,14 +4363,13 @@ function renderPLTable() {
   html += `<tr class="category-row"><td colspan="${colCount}">Sales</td></tr>`;
   incomeAccts.forEach(a => {
     const vals = cols.map(c => cVal(a, c));
-    const monthVals = vals.slice(0, fyMonths.length);
     html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
       vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-      `<td class="sparkline-col">${plSparkline(monthVals)}</td></tr>`;
+      `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
   });
   html += `<tr class="subtotal"><td>Total Sales</td>` +
     incTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${isPct ? (incTotals[i] === 0 ? '—' : '100.0%') : fmtPL(v)}</td>`).join('') +
-    `<td class="sparkline-col">${plSparkline(incTotals.slice(0, fyMonths.length))}</td></tr>`;
+    `<td class="sparkline-col">${sparkFor(incTotals)}</td></tr>`;
 
   // ── COS ───────────────────────────────────────────────────
   html += `<tr class="category-row"><td colspan="${colCount}">COS</td></tr>`;
@@ -4351,15 +4377,15 @@ function renderPLTable() {
     const vals = cols.map(c => cVal(a, c));
     html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
       vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-      `<td class="sparkline-col">${plSparkline(vals.slice(0, fyMonths.length))}</td></tr>`;
+      `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
   });
   html += `<tr class="subtotal"><td>Total COS</td>` +
     cosTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-    `<td class="sparkline-col">${plSparkline(cosTotals.slice(0, fyMonths.length))}</td></tr>`;
+    `<td class="sparkline-col">${sparkFor(cosTotals)}</td></tr>`;
   // Gross profit + GP%
   html += `<tr class="gp-line"><td>Gross Profit / (Loss) £</td>` +
     gpTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
-    `<td class="sparkline-col">${plSparkline(gpTotals.slice(0, fyMonths.length))}</td></tr>`;
+    `<td class="sparkline-col">${sparkFor(gpTotals)}</td></tr>`;
   html += `<tr class="pct-line"><td>GP%</td>` +
     gpTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
     `<td class="sparkline-col"></td></tr>`;
@@ -4371,15 +4397,15 @@ function renderPLTable() {
       const vals = cols.map(c => cVal(a, c));
       html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
         vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-        `<td class="sparkline-col">${plSparkline(vals.slice(0, fyMonths.length))}</td></tr>`;
+        `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
     });
     html += `<tr class="subtotal"><td>Total Admin costs</td>` +
       adminTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-      `<td class="sparkline-col">${plSparkline(adminTotals.slice(0, fyMonths.length))}</td></tr>`;
+      `<td class="sparkline-col">${sparkFor(adminTotals)}</td></tr>`;
     // EBITDA / Operating profit (before D&A)
     html += `<tr class="ebitda-line"><td>Operating Profit / (Loss) £ — EBITDA</td>` +
       ebitda.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
-      `<td class="sparkline-col">${plSparkline(ebitda.slice(0, fyMonths.length))}</td></tr>`;
+      `<td class="sparkline-col">${sparkFor(ebitda)}</td></tr>`;
   }
 
   // ── Depreciation & Amortisation ───────────────────────────
@@ -4389,19 +4415,19 @@ function renderPLTable() {
       const vals = cols.map(c => cVal(a, c));
       html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
         vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-        `<td class="sparkline-col">${plSparkline(vals.slice(0, fyMonths.length))}</td></tr>`;
+        `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
     });
     if (daAccts.length > 1) {
       html += `<tr class="subtotal"><td>Total D&amp;A</td>` +
         daTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
-        `<td class="sparkline-col">${plSparkline(daTotals.slice(0, fyMonths.length))}</td></tr>`;
+        `<td class="sparkline-col">${sparkFor(daTotals)}</td></tr>`;
     }
   }
 
   // ── Net profit + Net % ────────────────────────────────────
   html += `<tr class="np-line"><td>Net Profit / (Loss) £</td>` +
     npTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
-    `<td class="sparkline-col">${plSparkline(npTotals.slice(0, fyMonths.length))}</td></tr>`;
+    `<td class="sparkline-col">${sparkFor(npTotals)}</td></tr>`;
   html += `<tr class="pct-line"><td>Net %</td>` +
     npTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
     `<td class="sparkline-col"></td></tr>`;
