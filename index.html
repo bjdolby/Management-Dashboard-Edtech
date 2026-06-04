@@ -145,6 +145,9 @@
 
   .main { padding: 2rem; max-width: 1280px; margin: 0 auto; }
   .report-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
+  /* Print-only header — hidden on screen because the topbar shows brand
+     identification there. In print, see @media print rules below. */
+  .print-header { display: none; }
   .report-eyebrow { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
   .report-title { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); color: var(--text); line-height: 1.15; margin-bottom: 0.5rem; }
   .report-title em { color: var(--accent); font-style: italic; }
@@ -385,10 +388,22 @@
     .topbar-logo-btn, .topbar-meta, .file-chips, .edit-btn, .var-controls, .theme-toggle, .forecast-status, .toast-host,
     #accountPickerModal, #printOptionsModal, #plRollupModal, #cohortModal, .modal-backdrop,
     .diagnostic-note,
+    /* The topbar's brand block is hidden in print — the new .print-header
+       inside .report-header takes over the brand identification job. */
+    .topbar-brand,
+    .topbar,
     .footer { display: none !important; }
-    /* keep the editable company name visible in print, but drop the "click me" affordance */
-    .topbar-company { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; cursor: default; }
-    .topbar-company[contenteditable] { -webkit-user-modify: read-only; user-modify: read-only; }
+
+    /* Print-only header: centered logo + company name. Sits above the
+       existing Management Report / Title block in printed PDFs. */
+    .print-header { display: block !important; text-align: center; margin-bottom: 1.5rem; }
+    .print-header .brand-mark { display: flex; justify-content: center; margin-bottom: 0.75rem; }
+    .print-header .brand-mark img,
+    .print-header .brand-mark svg { height: 90px; width: auto; max-width: 360px; display: block; }
+    .print-company-name { font-family: var(--font-body); font-weight: 700; font-size: 24px; color: black; letter-spacing: 0.01em; }
+    /* Eyebrow + title centered to match the new header above them */
+    .report-header .report-eyebrow,
+    .report-header .report-title { text-align: center; }
     body { background: white; color: black; }
     .chart-card, .kpi-card, .alert-card, .table-card, .narrative-card { background: white; border: 1px solid #ccc; color: black; page-break-inside: avoid; break-inside: avoid; }
     .kpi-value, .kpi-label, .alert-body, .narrative-card p { color: black !important; }
@@ -528,6 +543,13 @@
   </div>
   <div class="main">
     <div class="report-header">
+      <!-- Print-only header: centered logo + company name, shown above the
+           eyebrow / title in printed PDFs. Hidden on screen because the
+           topbar already shows the brand identification there. -->
+      <div class="print-header">
+        <div class="brand-mark" id="printBrandMark"></div>
+        <div class="print-company-name" id="printCompanyName"></div>
+      </div>
       <div class="report-eyebrow">Management Report</div>
       <div class="report-title" id="reportTitle">Monthly <em>Overview</em></div>
     </div>
@@ -2293,7 +2315,9 @@ function getLogoHTML() {
 
 function applyLogo() {
   const html = getLogoHTML();
-  const slots = ['uploadBrandMark', 'topbarBrandMark'];
+  // Three slots: the upload screen, the topbar (screen), and the print-header
+  // (centered logo above the title in printed PDFs).
+  const slots = ['uploadBrandMark', 'topbarBrandMark', 'printBrandMark'];
   slots.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = html;
@@ -2308,6 +2332,10 @@ function applyCompanyName() {
   const name = getCompanyName();
   const tb = document.getElementById('topbarCompany');
   if (tb && document.activeElement !== tb) tb.textContent = name;
+  // Print-only centered company name (sits under the large logo in the
+  // .print-header block — see CSS in @media print)
+  const ph = document.getElementById('printCompanyName');
+  if (ph) ph.textContent = name;
   const fb = document.getElementById('footerBrand');
   if (fb) fb.textContent = name + ' — Management Dashboard';
   document.title = name + ' — Management Dashboard';
