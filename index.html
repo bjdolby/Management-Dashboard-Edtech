@@ -372,7 +372,6 @@
      Visually de-emphasised so they don't compete with headline metrics,
      and hidden from print so the SLT pack stays clean. */
   .diagnostic-note {
-    display: inline;
     font-size: 0.85em;
     color: var(--text2);
     font-style: italic;
@@ -2679,12 +2678,18 @@ function grrAt(focus) {
 }
 
 // ─── Burn Multiple + Rule of 40 ────────────────────────────────
+// NOTE: Burn Multiple has been removed from the v4 dashboard (KPI card +
+// narrative). At EdTech's scale (sub-£500k ARR) the ratio is too noisy —
+// a single deal can swing it dramatically — and the underlying framing
+// ("all spend should produce ARR") doesn't fit a mixed revenue model with
+// one-offs / testbeds / services. The calc is kept here in case an
+// investor pack ever needs it (Bessemer-style framing for a pitch).
+//
 // Burn Multiple = Net Cash Burn ÷ Net New ARR over a comparable window.
 // Standard interpretation:
 //   ≤ 1.0 : World-class    1.0 - 1.5 : Best
 //   1.5 - 2.0 : Good       2.0 - 3.0 : Suspect       > 3.0 : Bad
-// We use a trailing 3-month window for stability — single-month data is too
-// volatile, and quarterly is the typical SaaS investor reporting cadence.
+// Trailing 3-month window for stability — single-month is too volatile.
 function burnMultipleAt(focus) {
   if (!state.revenueGrid) return null;
   // 3-month trailing burn: sum of net losses across the last 3 months
@@ -3100,20 +3105,16 @@ function renderSaaSKpiGrid() {
         : '' }
   );
 
-  // ── Burn Multiple + Rule of 40 ──
-  const bm  = burnMultipleAt(focus);
+  // ── Rule of 40 ──
+  // Burn Multiple removed — too noisy at sub-£500k ARR, and the framing
+  // ("all spend should produce ARR") doesn't fit a mixed revenue model
+  // with one-offs / testbeds / services. `burnMultipleAt` retained above
+  // for potential future investor-pack use.
   const r40 = ruleOf40At(focus);
   const sevColour = (sev) => sev === 'positive' ? 'green' : sev === 'good' ? 'blue' : sev === 'warn' ? 'amber' : sev === 'critical' ? 'red' : 'neutral';
   const sevChg    = (sev) => sev === 'positive' ? 'pos' : sev === 'good' ? 'pos' : sev === 'warn' ? 'warn' : sev === 'critical' ? 'neg' : 'neutral';
 
   cards.push(
-    { label: 'Burn Multiple (3mo)',
-      value: bm == null ? '—' : (bm.ratio == null ? '∞' : bm.ratio.toFixed(2) + '×'),
-      change: bm == null ? 'Needs grid + 3 months of P&L' : bm.label,
-      chgClass: bm == null ? 'neutral' : sevChg(bm.severity),
-      color:    bm == null ? 'neutral' : sevColour(bm.severity),
-      yoy: bm == null ? '' :
-        `<div class="kpi-change-yoy">Burn £${Math.round(bm.burn).toLocaleString()} ÷ Net new ARR £${Math.round(bm.netNewARR).toLocaleString()}</div>` },
     { label: 'Rule of 40 (TTM)',
       value: r40 == null ? '—' : (r40.total >= 0 ? '+' : '') + r40.total.toFixed(0),
       change: r40 == null ? 'Needs 12 months of grid + P&L' :
@@ -3354,29 +3355,19 @@ function renderSaaSNarrative() {
     para5 += `</p>`;
   }
 
-  // ── Capital efficiency paragraph (Burn Multiple + Rule of 40) ──
-  const bm  = burnMultipleAt(focus);
+  // ── Capital efficiency paragraph (Rule of 40 only) ──
+  // Burn Multiple removed — see KPI section above for rationale.
+  // When Rule of 40 isn't computable (needs 12 months of P&L history),
+  // the whole block is wrapped in .diagnostic-note so it's visible on
+  // screen (as an actionable prompt to load more reports) but hidden
+  // from print, keeping the SLT pack clean.
   const r40 = ruleOf40At(focus);
   let para4 = '';
-  if (bm || r40) {
-    para4 += `<h4>Capital efficiency</h4><p>`;
-    if (bm) {
-      if (bm.ratio == null && bm.severity === 'critical') {
-        para4 += `Burn Multiple is <span class="mover-neg">undefined</span> — over the trailing 3 months ARR shrank by ${fmtGBP(Math.abs(bm.netNewARR))} (annualised) while cash burned ${fmtGBP(bm.burn)}. <span class="diagnostic-note">The business spent capital without adding ARR — the ratio investors care about can't be computed in this regime.</span> `;
-      } else if (bm.ratio === 0) {
-        para4 += `Burn Multiple is <span class="mover-pos">n/a — cash-positive over the trailing quarter</span>. `;
-      } else if (bm.ratio != null) {
-        const cls = bm.severity === 'positive' ? 'mover-pos' : bm.severity === 'critical' ? 'mover-neg' : '';
-        para4 += `Burn Multiple is <span class="${cls}">${bm.ratio.toFixed(2)}×</span> (${bm.label}) — spent ${fmtGBP(bm.burn)} of cash to add ${fmtGBP(bm.netNewARR)} of net new ARR over the trailing 3 months. `;
-      }
-    }
-    if (r40) {
-      const cls = r40.severity === 'positive' ? 'mover-pos' : r40.severity === 'critical' ? 'mover-neg' : '';
-      para4 += `Rule of 40 sits at <span class="${cls}">${r40.total.toFixed(0)}</span> (ARR growth ${r40.growth >= 0 ? '+' : ''}${r40.growth.toFixed(0)}% + TTM EBITDA margin ${r40.margin >= 0 ? '+' : ''}${r40.margin.toFixed(0)}%) — investors typically want this above 40 for a SaaS at this stage.`;
-    } else if (!r40 && bm) {
-      para4 += `<span class="diagnostic-note"><em>Rule of 40 requires 12 months of P&amp;L data — load earlier management reports to unlock the TTM figure.</em></span>`;
-    }
-    para4 += `</p>`;
+  if (r40) {
+    const cls = r40.severity === 'positive' ? 'mover-pos' : r40.severity === 'critical' ? 'mover-neg' : '';
+    para4 += `<h4>Capital efficiency</h4><p>Rule of 40 sits at <span class="${cls}">${r40.total.toFixed(0)}</span> (ARR growth ${r40.growth >= 0 ? '+' : ''}${r40.growth.toFixed(0)}% + TTM EBITDA margin ${r40.margin >= 0 ? '+' : ''}${r40.margin.toFixed(0)}%) — above 40 indicates a healthy balance of growth and profitability for a SaaS at this stage.</p>`;
+  } else {
+    para4 += `<div class="diagnostic-note"><h4>Capital efficiency</h4><p>Rule of 40 requires 12 months of P&amp;L data — load earlier management reports to unlock the TTM figure.</p></div>`;
   }
 
   el.innerHTML = para1 + para2 + para3 + para5 + para4;
