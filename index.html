@@ -383,36 +383,114 @@
 
   @media print {
     @page { size: A4; margin: 15mm; }
+    /* Force the LIGHT theme palette in print, regardless of which theme
+       is active on screen. Dark mode's colours are designed for contrast
+       on a dark background — when forced onto a white page they look
+       washed out (the lighter teal, brighter red/green, etc.). Mirroring
+       the light theme values onto :root inside @media print gives a
+       consistent print look whether the user is reviewing in dark or
+       light mode on screen. */
+    :root,
+    :root[data-theme="dark"],
+    :root[data-theme="light"] {
+      --bg: #f5f6f8;
+      --surface: #ffffff;
+      --surface2: #f0f2f6;
+      --border: rgba(15,23,42,0.16);
+      --border2: rgba(15,23,42,0.24);
+      --text: #1a1d24;
+      --text2: #5a6072;
+      --text3: #8e94a3;
+      --accent: #2c7a7b;
+      --accent-soft: rgba(44,122,123,0.07);
+      --accent-soft-2: rgba(44,122,123,0.14);
+      --red: #d92626;
+      --red-dim: rgba(217,38,38,0.1);
+      --amber: #b87600;
+      --amber-dim: rgba(184,118,0,0.1);
+      --green: #117a3a;
+      --green-dim: rgba(17,122,58,0.1);
+      --blue: #2563eb;
+      --blue-dim: rgba(37,99,235,0.1);
+      --purple: #7c3aed;
+      --tint-1: rgba(15,23,42,0.025);
+      --tint-2: rgba(15,23,42,0.05);
+      --tint-3: rgba(15,23,42,0.07);
+      --shadow-soft: rgba(15,23,42,0.08);
+    }
     .topbar { position: static; }
+    /* All on-screen UI is hidden from print. The topbar (and its brand
+       block) is hidden because .print-header inside .report-header takes
+       over the brand identification job for printed PDFs. */
     .btn-upload-new, .btn-print, .btn-add, .btn-ghost, #upload-screen, #loading-screen,
     .topbar-logo-btn, .topbar-meta, .file-chips, .edit-btn, .var-controls, .theme-toggle, .forecast-status, .toast-host,
     #accountPickerModal, #printOptionsModal, #plRollupModal, #cohortModal, .modal-backdrop,
-    .diagnostic-note,
-    /* The topbar's brand block is hidden in print — the new .print-header
-       inside .report-header takes over the brand identification job. */
-    .topbar-brand,
-    .topbar,
-    .footer { display: none !important; }
+    .diagnostic-note, .topbar-brand, .topbar, .footer { display: none !important; }
+
+    /* Reset .main for print — drop the on-screen max-width cap so content
+       fills the @page area, but keep a small 1rem inner gutter so cards
+       and tables don't sit flush against the @page margin. With this:
+       portrait usable area = ~650px (3 KPI cols, 9.5px P&L table fits YTD),
+       landscape usable area = ~990px (P&L summary 10 cols fit cleanly). */
+    .main { max-width: none !important; padding: 0 1rem !important; margin: 0 !important; }
 
     /* Print-only header: centered logo + company name. Sits above the
        existing Management Report / Title block in printed PDFs. */
-    .print-header { display: block !important; text-align: center; margin-bottom: 1.5rem; }
-    .print-header .brand-mark { display: flex; justify-content: center; margin-bottom: 0.75rem; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 1rem; }
+    .print-header .brand-mark { display: flex; justify-content: center; margin-bottom: 0.6rem; }
     .print-header .brand-mark img,
-    .print-header .brand-mark svg { height: 90px; width: auto; max-width: 360px; display: block; }
-    .print-company-name { font-family: var(--font-body); font-weight: 700; font-size: 24px; color: black; letter-spacing: 0.01em; }
+    .print-header .brand-mark svg { height: 80px; width: auto; max-width: 340px; display: block; }
+    .print-company-name { font-family: var(--font-body); font-weight: 700; font-size: 22px; color: black; letter-spacing: 0.01em; }
+    /* When no custom logo has been uploaded, hide the placeholder brand-mark
+       entirely. The centered company name + eyebrow + title still render,
+       giving a clean text-based header. This also frees ~110px on page 1
+       so the KPI block has room to flow up alongside the Executive Summary. */
+    body.no-custom-logo .print-header .brand-mark { display: none !important; }
     /* Eyebrow + title centered to match the new header above them */
     .report-header .report-eyebrow,
     .report-header .report-title { text-align: center; }
+    /* Tighter section spacing for a more "seamless" feel — section labels
+       were carrying a 2rem top margin from screen, which compounded with
+       card margins to leave noticeable gaps between sections. */
+    .section-label { margin: 1rem 0 0.5rem !important; }
+    .report-header { margin-bottom: 1rem !important; padding-bottom: 0.75rem !important; }
     body { background: white; color: black; }
     .chart-card, .kpi-card, .alert-card, .table-card, .narrative-card { background: white; border: 1px solid #ccc; color: black; page-break-inside: avoid; break-inside: avoid; }
     .kpi-value, .kpi-label, .alert-body, .narrative-card p { color: black !important; }
+    /* KPI cards in print — pinned to 3 columns so the 9-card grid is a
+       clean 3×3 (no lonely orphan on the last row at 4-up), and slightly
+       larger fonts/padding so each card reads as a proper KPI tile not
+       a cramped data cell. The SaaS KPI grid on page 2 becomes 3 cols × 4
+       rows under the same rule — taller but cleaner. */
+    .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; }
+    /* Explicit border + background with !important so every card has its
+       outline visible. Without this, cards with a colored ::before top
+       stripe (e.g. NET RESULT with the red bar) can lose their border in
+       Chrome's print render due to the interaction between overflow:hidden,
+       border-radius, and the absolutely-positioned colored stripe. */
+    .kpi-card {
+      padding: 0.9rem 1rem !important;
+      border: 1px solid #ccc !important;
+      background: white !important;
+    }
+    .kpi-value { font-size: 19px !important; }
+    .kpi-label { font-size: 10px !important; }
+    .kpi-change { font-size: 11px !important; }
+    .kpi-change-yoy { font-size: 10px !important; }
+    /* Breathing room between the Executive Summary narrative and the
+       KPI block — was feeling crowded at the previous 1.5rem. */
+    .main > #kpiSectionLabel { margin-top: 2.25rem !important; }
 
     /* ── Page breaks ────────────────────────────────────────── */
     /* Every top-level section starts on a new page EXCEPT the first one
-       (Executive summary), which sits with the report header on page 1. */
+       (Executive summary), which sits with the report header on page 1.
+       The KPI grid is also allowed to flow up onto page 1 when there's room
+       (most months) — it page-break-insides: avoids so it'll either fit
+       cleanly on page 1 alongside the narrative, or push to page 2 as a
+       unit when the narrative runs long. */
     .main > .section-label { page-break-before: always; break-before: page; margin-top: 0; }
     .main > .report-header + .section-label { page-break-before: auto; break-before: auto; }
+    .main > #kpiSectionLabel { page-break-before: auto; break-before: auto; margin-top: 1.5rem; }
     /* Year-to-date section sits on the same page as the P&L summary */
     .main > #ytdSectionLabel { page-break-before: auto; break-before: auto; margin-top: 1.25rem; }
     /* Never orphan a section heading from its content */
@@ -422,7 +500,9 @@
     /* Keep tight grids together where practical */
     .kpi-grid, .alerts-grid { page-break-inside: avoid; break-inside: avoid; }
 
-    /* ── Chart grids — space the 2 charts evenly across a full page ── */
+    /* ── Chart grids in print — matches v2g's layout ──
+       Each chart-grid fills a full A4 portrait page with 2 charts stacked
+       vertically and breathing room between them via space-evenly. */
     .main > .chart-grid {
       display: flex !important;
       flex-direction: column;
@@ -435,10 +515,57 @@
     }
     .main > .chart-grid .chart-card { flex: 0 0 auto; }
 
+    /* ── Chart canvas sizing ─────────────────────────────────────
+       Chart.js writes pixel width/height attributes onto canvases at
+       render time based on screen dimensions. When the print media kicks
+       in and cards become wider, the canvas DOM dimensions stay at the
+       smaller screen size — so charts render in the left half of the card.
+       Force the canvas to fill its wrap via CSS, and the beforeprint
+       listener (see JS) calls .resize() on each Chart instance to update
+       the underlying pixel buffer. This applies to ALL chart-wraps,
+       including the Cohort Retention chart that sits OUTSIDE chart-grids
+       (which was overflowing its card's right edge for the same reason). */
+    .chart-wrap { width: 100% !important; box-sizing: border-box; }
+    .chart-wrap canvas {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    /* The Cohort Retention chart-card has overflow: hidden disabled by
+       default (so its legend can overflow). For print, ensure the card
+       clips overflow so nothing extends beyond the page edge. */
+    #saasCohortRow .chart-card { overflow: hidden !important; }
+
+    /* Force background colours to render in print. Chrome (and most
+       browsers) strip CSS background-color from print by default to
+       save ink — which kills the coloured legend swatches under chart
+       titles ("Revenue / Total costs", "Cash in / Cash out"), the KPI
+       card top stripes, and the colour-coded badges in alerts/cohort
+       sense-check. This rule forces them to render exactly as on screen. */
+    .legend-dot,
+    .kpi-card::before,
+    .alert-card,
+    .kpi-card,
+    .narrative-card,
+    .chart-card,
+    .table-card {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    /* Also apply at the page level as a safety net for anything we
+       didn't catch above. */
+    html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
     /* ── P&L Summary in print ────────────────────────────────── */
     /* Hide screen-only controls and the sparkline column to fit wide month grids on portrait A4 */
     .pl-controls, .pl-summary-controls { display: none !important; }
     .pl-table .sparkline-col { display: none !important; }
+    /* Trim older months from the P&L Detailed in print so the table fits
+       portrait A4 even with a full FY loaded. The 6 most recent months +
+       YTD always print; older months stay visible on screen. See
+       `colCls` in renderPLTable(). */
+    .pl-table .print-hide-col { display: none !important; }
     .pl-table th, .pl-table td { padding: 4px 6px !important; font-size: 9.5px !important; }
     .pl-table tr.pct-line td { font-size: 9px !important; }
     .pl-table-wrap, .pl-summary-wrap { overflow: visible !important; }
@@ -447,12 +574,17 @@
        month columns + YTD fit comfortably on one A4 page without wrapping. */
     @page pl-summary-page { size: A4 landscape; margin: 12mm; }
     .pl-summary-section { page: pl-summary-page; page-break-inside: avoid; break-inside: avoid; }
-    .pl-summary-table { width: 100% !important; }
-    .pl-summary-table th, .pl-summary-table td { padding: 3px 6px !important; font-size: 10.5px !important; white-space: nowrap !important; }
-    .pl-summary-table td:not(:first-child):not(:nth-child(2)) { font-size: 10.5px !important; }
-    .pl-summary-table tr.pct-row td { font-size: 9.5px !important; }
-    .pl-summary-table td:first-child { min-width: 0 !important; width: auto !important; }
-    .pl-summary-table td:nth-child(2) { min-width: 0 !important; width: auto !important; }
+    .pl-summary-table { width: 100% !important; table-layout: auto !important; }
+    /* Tighter padding + smaller font so all 8 months + YTD fit on a
+       landscape A4 page without truncating the right-most column.
+       Previously 10.5px/3px-6px which was 1 column too wide. */
+    .pl-summary-table th, .pl-summary-table td { padding: 2px 4px !important; font-size: 9.5px !important; white-space: nowrap !important; }
+    .pl-summary-table td:not(:first-child):not(:nth-child(2)) { font-size: 9.5px !important; }
+    .pl-summary-table tr.pct-row td { font-size: 8.5px !important; }
+    /* Let the label columns shrink to content — saves horizontal room
+       for the month and YTD columns, which carry the numbers. */
+    .pl-summary-table td:first-child, .pl-summary-table th:first-child { min-width: 0 !important; width: auto !important; }
+    .pl-summary-table td:nth-child(2), .pl-summary-table th:nth-child(2) { min-width: 0 !important; width: auto !important; }
     .pl-narrative { background: white !important; border: 1px solid #ccc !important; color: black !important; page-break-inside: avoid; break-inside: avoid; }
     .pl-narrative h4 { color: #333 !important; }
     .pl-narrative .mover-pos { color: #117a3a !important; }
@@ -557,7 +689,7 @@
     <div class="section-label">Executive summary</div>
     <div id="narrativeContainer"></div>
 
-    <div class="section-label">Key performance indicators</div>
+    <div class="section-label" id="kpiSectionLabel">Key performance indicators</div>
     <div class="kpi-grid" id="kpiGrid"></div>
 
     <!-- v4: SaaS insights — only shown when state.revenueGrid is loaded. -->
@@ -596,8 +728,10 @@
     </div>
 
     <div class="section-label">Revenue &amp; profitability trends</div>
-    <!-- Page 1 — Profitability: top line, margin, bottom line. Tells the
-         complete P&L story across all loaded months. -->
+    <!-- Three chart-grids of 2 charts each — matches v2g's layout, which
+         prints as 2 charts per A4 portrait page, each chart sized generously
+         with breathing room. Charts pair by topic: revenue+margin,
+         cash+net, then cash-flow+revenue-mix. -->
     <div class="chart-grid">
       <div class="chart-card">
         <div class="chart-card-title">Monthly revenue vs total costs</div>
@@ -606,26 +740,31 @@
           <div class="legend-item"><span class="legend-dot" style="background:#60a5fa"></span>Revenue</div>
           <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Total costs</div>
         </div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="revChart"></canvas></div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="revChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Gross profit margin %</div>
         <div class="chart-card-sub">% of revenue retained after direct costs</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="marginChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Net profit / (loss)</div>
-        <div class="chart-card-sub">Monthly net result — green = profit, red = loss</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="netChart"></canvas></div>
+        <div class="chart-wrap" style="height:258px;"><canvas id="marginChart"></canvas></div>
       </div>
     </div>
-    <!-- Page 2 — Cash & mix: cash balance trend, monthly flow direction,
-         and the revenue-mix snapshot for the focus period. -->
     <div class="chart-grid">
       <div class="chart-card">
         <div class="chart-card-title">Cash balance</div>
         <div class="chart-card-sub">Closing bank balance over all loaded periods</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="cashChart"></canvas></div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="cashChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Net profit / (loss)</div>
+        <div class="chart-card-sub">Monthly net result — green = profit, red = loss</div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="netChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">Revenue mix (selected period)</div>
+        <div class="chart-card-sub">Split of trading income by source</div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="revMixChart"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">Cash in vs cash out</div>
@@ -634,12 +773,7 @@
           <div class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>Cash in</div>
           <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Cash out</div>
         </div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="cashFlowChart"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Revenue mix (selected period)</div>
-        <div class="chart-card-sub">Split of trading income by source</div>
-        <div class="chart-wrap" style="height:220px;"><canvas id="revMixChart"></canvas></div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="cashFlowChart"></canvas></div>
       </div>
     </div>
 
@@ -821,6 +955,17 @@
 //  STATE
 // ═════════════════════════════════════════════
 const chartInstances = {};
+
+// When the user prints, the print media layout switches chart-grids from
+// CSS grid (multi-column) to flex column (full-width single column). Chart.js
+// canvases are sized at render time and don't auto-resize for the new media
+// width, so we trigger a resize on every chart before print. Without this the
+// canvases stay at their screen-rendered size and look squished on the page.
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('beforeprint', () => {
+    Object.values(chartInstances).forEach(c => { try { c.resize(); } catch (e) {} });
+  });
+}
 const state = {
   reports: [],             // [{name, asOf}]
   months: [],              // sorted newest-first: ['Mar 2026', ..., 'Aug 2024']
@@ -2033,12 +2178,24 @@ function addReport(parsed, filename) {
 // ═════════════════════════════════════════════
 //  FORMATTERS
 // ═════════════════════════════════════════════
+// Accounting convention: negatives in brackets, not with a minus sign.
+// Used everywhere absolute £ values are displayed — KPI cards, Balance
+// Sheet, Variance, Cash Movement, Aged AR/AP, etc. The P&L Summary table
+// already uses brackets via fmtPL, so this brings the rest of the
+// dashboard into line.
 function fmtGBP(v) {
   if (v === 0 || !isFinite(v) || v == null) return '£0';
   const abs = Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  return (v < 0 ? '-' : '') + '£' + abs;
+  return v < 0 ? `(£${abs})` : `£${abs}`;
 }
-function fmtPct(v)    { if (!isFinite(v) || v == null) return '—'; return v.toFixed(1) + '%'; }
+// Same accounting convention for percentages — brackets for negative
+// absolute values. Note: deltas/changes (e.g. "+8.1% vs last month") add
+// their own sign at the caller and pass an absolute value, so they're
+// unaffected by this change.
+function fmtPct(v) {
+  if (!isFinite(v) || v == null) return '—';
+  return v < 0 ? `(${Math.abs(v).toFixed(1)}%)` : `${v.toFixed(1)}%`;
+}
 function fmt(v, d=0)  { if (!isFinite(v) || v == null) return '—'; return Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: d, maximumFractionDigits: d }); }
 function pctChg(a, b) { return b ? ((a - b) / Math.abs(b)) * 100 : 0; }
 function arrow(v)     { return v >= 0 ? '▲' : '▼'; }
@@ -2314,6 +2471,15 @@ function getLogoHTML() {
 }
 
 function applyLogo() {
+  const stored = loadStorage('logo');
+  // Distinguish "user uploaded a real logo" from "we're showing the default
+  // placeholder". Used by print CSS to hide the placeholder on printed PDFs
+  // (Ben doesn't want a generic placeholder taking real estate at the top
+  // of the cover page when there's no actual branding to show).
+  const hasCustomLogo = !!(stored && stored.startsWith('data:image'));
+  document.body.classList.toggle('has-custom-logo', hasCustomLogo);
+  document.body.classList.toggle('no-custom-logo', !hasCustomLogo);
+
   const html = getLogoHTML();
   // Three slots: the upload screen, the topbar (screen), and the print-header
   // (centered logo above the title in printed PDFs).
@@ -4345,6 +4511,20 @@ function renderPLTable() {
   // reverse the per-month slice to chronological order.
   const sparkFor = (vals) => plSparkline(vals.slice(0, fyMonths.length).reverse());
 
+  // Print-time column trimming: portrait A4 only fits ~9 columns comfortably,
+  // so when the user has loaded a full FY (up to 12 months), we hide the
+  // older months in PRINT via .print-hide-col — keeping the 6 most recent
+  // months plus YTD visible on paper. On screen the full month range stays
+  // visible. The YTD column is always preserved.
+  const PRINT_KEEP = 6;
+  const colCls = (i, extra = '') => {
+    const parts = [];
+    if (cols[i].ytd) parts.push('ytd-col');
+    if (!cols[i].ytd && i >= PRINT_KEEP) parts.push('print-hide-col');
+    if (extra) parts.push(extra);
+    return parts.join(' ');
+  };
+
   function cVal(acct, col) {
     if (col.ytd) return fyMonths.reduce((s, m) => s + plVal(m, acct), 0);
     return plVal(col.key, acct);
@@ -4384,7 +4564,7 @@ function renderPLTable() {
   }
 
   let html = `<thead><tr><th>Account</th>` +
-    cols.map(c => `<th class="${c.ytd ? 'ytd-col' : ''}" style="text-align:right">${c.label}</th>`).join('') +
+    cols.map((c, i) => `<th class="${colCls(i)}" style="text-align:right">${c.label}</th>`).join('') +
     `<th class="sparkline-col" style="text-align:right">Trend</th></tr></thead><tbody>`;
 
   // ── Sales ─────────────────────────────────────────────────
@@ -4392,11 +4572,11 @@ function renderPLTable() {
   incomeAccts.forEach(a => {
     const vals = cols.map(c => cVal(a, c));
     html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
-      vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+      vals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
       `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
   });
   html += `<tr class="subtotal"><td>Total Sales</td>` +
-    incTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${isPct ? (incTotals[i] === 0 ? '—' : '100.0%') : fmtPL(v)}</td>`).join('') +
+    incTotals.map((v, i) => `<td class="${colCls(i)}">${isPct ? (incTotals[i] === 0 ? '—' : '100.0%') : fmtPL(v)}</td>`).join('') +
     `<td class="sparkline-col">${sparkFor(incTotals)}</td></tr>`;
 
   // ── COS ───────────────────────────────────────────────────
@@ -4404,18 +4584,18 @@ function renderPLTable() {
   cosAccts.forEach(a => {
     const vals = cols.map(c => cVal(a, c));
     html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
-      vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+      vals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
       `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
   });
   html += `<tr class="subtotal"><td>Total COS</td>` +
-    cosTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+    cosTotals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
     `<td class="sparkline-col">${sparkFor(cosTotals)}</td></tr>`;
   // Gross profit + GP%
   html += `<tr class="gp-line"><td>Gross Profit / (Loss) £</td>` +
-    gpTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
+    gpTotals.map((v, i) => `<td class="${colCls(i, cellCls(v, { bottomLine: true }))}">${fmtPL(v)}</td>`).join('') +
     `<td class="sparkline-col">${sparkFor(gpTotals)}</td></tr>`;
   html += `<tr class="pct-line"><td>GP%</td>` +
-    gpTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
+    gpTotals.map((v, i) => `<td class="${colCls(i)}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
     `<td class="sparkline-col"></td></tr>`;
 
   // ── Admin costs ───────────────────────────────────────────
@@ -4424,15 +4604,15 @@ function renderPLTable() {
     adminAccts.forEach(a => {
       const vals = cols.map(c => cVal(a, c));
       html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
-        vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+        vals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
         `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
     });
     html += `<tr class="subtotal"><td>Total Admin costs</td>` +
-      adminTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+      adminTotals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
       `<td class="sparkline-col">${sparkFor(adminTotals)}</td></tr>`;
     // EBITDA / Operating profit (before D&A)
     html += `<tr class="ebitda-line"><td>Operating Profit / (Loss) £ — EBITDA</td>` +
-      ebitda.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
+      ebitda.map((v, i) => `<td class="${colCls(i, cellCls(v, { bottomLine: true }))}">${fmtPL(v)}</td>`).join('') +
       `<td class="sparkline-col">${sparkFor(ebitda)}</td></tr>`;
   }
 
@@ -4442,22 +4622,22 @@ function renderPLTable() {
     daAccts.forEach(a => {
       const vals = cols.map(c => cVal(a, c));
       html += `<tr class="line-row"><td class="indent-1">${cleanLabel(a)}</td>` +
-        vals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+        vals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
         `<td class="sparkline-col">${sparkFor(vals)}</td></tr>`;
     });
     if (daAccts.length > 1) {
       html += `<tr class="subtotal"><td>Total D&amp;A</td>` +
-        daTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${fmtCell(v, i)}</td>`).join('') +
+        daTotals.map((v, i) => `<td class="${colCls(i)}">${fmtCell(v, i)}</td>`).join('') +
         `<td class="sparkline-col">${sparkFor(daTotals)}</td></tr>`;
     }
   }
 
   // ── Net profit + Net % ────────────────────────────────────
   html += `<tr class="np-line"><td>Net Profit / (Loss) £</td>` +
-    npTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col ' : ''}${cellCls(v, { bottomLine: true })}">${fmtPL(v)}</td>`).join('') +
+    npTotals.map((v, i) => `<td class="${colCls(i, cellCls(v, { bottomLine: true }))}">${fmtPL(v)}</td>`).join('') +
     `<td class="sparkline-col">${sparkFor(npTotals)}</td></tr>`;
   html += `<tr class="pct-line"><td>Net %</td>` +
-    npTotals.map((v, i) => `<td class="${cols[i].ytd ? 'ytd-col' : ''}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
+    npTotals.map((v, i) => `<td class="${colCls(i)}">${incTotals[i] ? ((v / incTotals[i]) * 100).toFixed(1) + '%' : '—'}</td>`).join('') +
     `<td class="sparkline-col"></td></tr>`;
 
   html += '</tbody>';
@@ -4514,8 +4694,11 @@ function buildPLNarrative(ctx) {
         // For income, up is good (green). For costs, up is bad (red).
         const good = isIncome ? m.delta > 0 : m.delta < 0;
         const cls = good ? 'mover-pos' : 'mover-neg';
-        const sign = m.delta >= 0 ? '+' : '−';
-        return `<strong>${cleanLabel(m.acct)}</strong>: <span class="${cls}">${sign}${fmtPL(Math.abs(m.delta))}</span> (${fmtPL(m.cur)} vs ${fmtPL(m.prv)})`;
+        // Pass the signed delta to fmtPL so negatives use brackets
+        // (accounting convention) rather than a minus sign. Positives
+        // still get a leading "+" for emphasis on direction.
+        const prefix = m.delta > 0 ? '+' : '';
+        return `<strong>${cleanLabel(m.acct)}</strong>: <span class="${cls}">${prefix}${fmtPL(m.delta)}</span> (${fmtPL(m.cur)} vs ${fmtPL(m.prv)})`;
       }).join(' &nbsp;·&nbsp; ');
       html += '.</p>';
     }
