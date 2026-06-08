@@ -5144,7 +5144,7 @@ function renderCashFlowTable() {
     let html = `<thead><tr><th>Cash movement</th><th style="text-align:right">${focus}</th></tr></thead><tbody>`;
     html += `<tr class="subtotal"><td>Opening bank balance</td><td>${fmtGBP(openCash)}</td></tr>`;
     html += `<tr><td class="indent-1">Cash received</td><td class="val-pos">${fmtGBP(cin)}</td></tr>`;
-    html += `<tr><td class="indent-1">Cash spent</td><td class="val-neg">-${fmtGBP(cout)}</td></tr>`;
+    html += `<tr><td class="indent-1">Cash spent</td><td class="val-neg">${fmtGBP(-Math.abs(cout))}</td></tr>`;
     html += `<tr class="subtotal"><td>Net cash movement</td><td class="${cin - cout >= 0 ? 'val-pos' : 'val-neg'}">${fmtGBP(cin - cout)}</td></tr>`;
     html += `<tr class="grand-total"><td>Closing bank balance</td><td>${fmtGBP(cashNow)}</td></tr>`;
     html += `</tbody>`;
@@ -5186,12 +5186,15 @@ function renderCashFlowTable() {
   // Payments — top only
   if (topExp.length) {
     html += `<tr class="section-header"><td colspan="2">Top payments${expense.length > topExp.length ? ` (top ${topExp.length} of ${expense.length})` : ''}</td></tr>`;
-    topExp.forEach(i => html += `<tr><td class="indent-1">${cleanLabel(i.label)}</td><td class="val-neg">-${fmtGBP(Math.abs(i.value))}</td></tr>`);
+    // Payments are outflows — pass the value as a negative so fmtGBP renders
+    // it with brackets (accounting convention), consistent with the rest of
+    // the dashboard rather than the legacy literal "-£X" minus-prefix pattern.
+    topExp.forEach(i => html += `<tr><td class="indent-1">${cleanLabel(i.label)}</td><td class="val-neg">${fmtGBP(-Math.abs(i.value))}</td></tr>`);
     if (expense.length > topExp.length) {
       const otherExp = expense.slice(topExp.length).reduce((t, i) => t + i.value, 0);
-      html += `<tr><td class="indent-1">Other payments</td><td class="val-neg">-${fmtGBP(Math.abs(otherExp))}</td></tr>`;
+      html += `<tr><td class="indent-1">Other payments</td><td class="val-neg">${fmtGBP(-Math.abs(otherExp))}</td></tr>`;
     }
-    html += `<tr class="subtotal"><td>Total payments</td><td class="val-neg">-${fmtGBP(Math.abs(sumExp))}</td></tr>`;
+    html += `<tr class="subtotal"><td>Total payments</td><td class="val-neg">${fmtGBP(-Math.abs(sumExp))}</td></tr>`;
   }
 
   // Surplus / deficit from trading
